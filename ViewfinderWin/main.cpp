@@ -10,8 +10,6 @@
 // TODO: Use regular expressions to find image resolution
 // TODO: Reg error handling
 
-
-
 #include <sstream>
 #include <iostream>
 #include <string>
@@ -30,12 +28,14 @@ int main()
 	const wstring WEBPAGE = L"old.reddit.com";
 	const string DOWN_LOCATION = "wallpaper.bmp";
 
+	// Setup HTTP client
 	HTTPClient httpHandle = HTTPClient();
 	httpHandle.setDownName(DOWN_LOCATION);
 	if (httpHandle.setParams(WEBPAGE, SUBREDDIT) != 0) {
 		cout << "Error: Webpage not valid" << endl;
 	}
 
+	// Download webpage html and handle errors
 	int code;
 	code = httpHandle.download(RES_HTML);
 	if (code != 0) {
@@ -62,17 +62,16 @@ int main()
     long long rankNum = 1;
 	int startpos = 0, endpos = 0;
     wstring imageURL = L"";
-    while (rankNum <= 25) {
-        cout << rankNum << endl;
-        imageURL = findURL(httpHandle.getSource(), startpos, rankNum);
+    while (rankNum <= 25) {														// 25 images per page
+        imageURL = findURL(httpHandle.getSource(), startpos, rankNum);			// Download webpage and scrape for next image
 		size_t pos = imageURL.find(L"/");
 		httpHandle.setParams(imageURL.substr(0, pos), imageURL.substr(pos));	// Partition URL into server and resource and set the parameters
-        code = httpHandle.download(RES_IMG);
+        code = httpHandle.download(RES_IMG);									// Download image to file
         if (code == 1) {
-            ++rankNum;      // If image could not be downloaded try again with next image
+            ++rankNum;															// If image could not be downloaded try again with next image
             continue;
         } else {
-            code = setWallpaper("wallpaper.bmp");
+            code = setWallpaper("wallpaper.bmp");								// Set wallpaper
 			if (code == 1)
 				break;
 			else
@@ -83,12 +82,12 @@ int main()
     return 0;
 }
 
-wstring findURL(const wstring& body, size_t startpos, long long imgRank)	
+wstring findURL(const wstring& body, size_t startpos, long long imgRank)	// Returns the URL corresponding to specified image rank
 {
     bool match = false;
     wstring searchTerm = L"", imgURL = L"";
     while  (match == false) {
-        startpos = body.find(searchTerm, startpos);    // Only searches after last position
+        startpos = body.find(searchTerm, startpos);			// Only searches after last position
         searchTerm = L"data-url=\"";
         startpos = body.find(searchTerm, startpos) + 10;    // Finds the next instance of 'data-url=' (This should be the link to the image)
         searchTerm = L"\"";
@@ -96,6 +95,7 @@ wstring findURL(const wstring& body, size_t startpos, long long imgRank)
         imgURL = body.substr(startpos, (endpos-startpos));
         match = true;
     }
+
     // Append .jpg if it does not have a common extension, and does not end with / (Useful for imgur links)
     if (imgURL.substr(imgURL.size()-4, imgURL.size()-1) != L".jpg" &&
         imgURL.substr(imgURL.size()-4, imgURL.size()-1) != L".png" &&
@@ -107,10 +107,9 @@ wstring findURL(const wstring& body, size_t startpos, long long imgRank)
 
 int setWallpaper(const char* path)
 {
-	// Set registry to 2 (Stretch)
 	HKEY key;
 	RegOpenKey(HKEY_CURRENT_USER, TEXT("Control Panel\\Desktop\\"), &key);
-	RegSetValueEx(key, TEXT("WallpaperStyle"), 0, REG_SZ, (LPBYTE)"2", strlen("2") * sizeof(char));
+	RegSetValueEx(key, TEXT("WallpaperStyle"), 0, REG_SZ, (LPBYTE)"2", strlen("2") * sizeof(char));					// Set registry to 2 (Stretch)
 	RegCloseKey(key);
-	return SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, (PVOID)path, SPIF_SENDWININICHANGE | SPIF_UPDATEINIFILE);
+	return SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, (PVOID)path, SPIF_SENDWININICHANGE | SPIF_UPDATEINIFILE);	// Set the desktop wallpaper
 }

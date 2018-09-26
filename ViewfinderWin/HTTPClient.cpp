@@ -30,8 +30,9 @@ int HTTPClient::checkSourceErrors()
 	}
 }
 
-int HTTPClient::download(const int TYPE)
+int HTTPClient::download(const int TYPE)		
 {
+	// Windows HTTP setup
 	DWORD dwSize = 0;
 	DWORD dwDownloaded = 0;
 	LPSTR pszOutBuffer;
@@ -46,56 +47,44 @@ int HTTPClient::download(const int TYPE)
 		hRequest = WinHttpOpenRequest(hConnect, L"GET", RES.c_str(), NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE);
 	if (hRequest)
 		bResults = WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0);
-	// End the request
 	if (bResults)
 		bResults = WinHttpReceiveResponse(hRequest, NULL);
 
-
 	if (TYPE == RES_IMG) {
-		imgFile.open(FILE_NAME, ofstream::binary);
+		imgFile.open(FILE_NAME, ofstream::binary);			// Open a file if resource is an image
 	}
-	// Keep checking for data until there is nothing left.
-	if (bResults)
+	if (bResults)											 // Keep checking for data until there is nothing left
 	{
 		do
 		{
-			// Check for available data.
 			dwSize = 0;
-			if (!WinHttpQueryDataAvailable(hRequest, &dwSize))
+			if (!WinHttpQueryDataAvailable(hRequest, &dwSize))				// Check for available data
 				printf("Error %u in WinHttpQueryDataAvailable.\n",
 					GetLastError());
-
-			// Allocate space for the buffer.
-			pszOutBuffer = new char[dwSize + 1];
+			pszOutBuffer = new char[dwSize + 1];							// Allocate space for the buffer
 			if (!pszOutBuffer)
 			{
 				printf("Out of memory\n");
 				dwSize = 0;
 			}
-			else
+			else // Read the data
 			{
-				// Read the data.
 				ZeroMemory(pszOutBuffer, dwSize + 1);
-
-				if (!WinHttpReadData(hRequest, (LPVOID)pszOutBuffer,
-					dwSize, &dwDownloaded))
+				if (!WinHttpReadData(hRequest, (LPVOID)pszOutBuffer, dwSize, &dwDownloaded))
 					printf("Error %u in WinHttpReadData.\n", GetLastError());
 				else {
-					// Write buffer to file or memory depending on TYPE
-					if (TYPE == RES_IMG) {
-						imgFile.write(pszOutBuffer, dwSize);
+					if (TYPE == RES_IMG) {									// Write buffer to file or memory depending on TYPE
+						imgFile.write(pszOutBuffer, dwSize);	
 					}
 					else if (TYPE == RES_HTML) {
 						buffer << pszOutBuffer;
 					}
 				}
-
-
-				// Free the memory allocated to the buffer.
-				delete[] pszOutBuffer;
+				delete[] pszOutBuffer;										// Free the memory allocated to the buffer.
 			}
 		} while (dwSize > 0);
 	}
+
 	// Report any errors.
 	if (!bResults)
 		printf("Error %d has occurred.\n", GetLastError());
